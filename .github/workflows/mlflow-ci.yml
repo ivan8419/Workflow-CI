@@ -1,0 +1,90 @@
+name: MLflow CI - Model Training and Docker Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  train-model:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.7'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy scikit-learn mlflow==2.19.0 matplotlib seaborn
+
+      - name: Train model with MLflow Project
+        working-directory: MLProject
+        run: |
+          mlflow run . --experiment-name Credit_Card_Fraud_Detection_CI
+
+      - name: Verify model training
+        working-directory: MLProject
+        run: |
+          python -c "
+          import mlflow
+          mlflow.set_tracking_uri('sqlite:///mlflow.db')
+          client = mlflow.tracking.MlflowClient()
+          experiment = client.get_experiment_by_name('Credit_Card_Fraud_Detection_CI')
+          assert experiment is not None, 'Experiment not found'
+          runs = client.search_runs(experiment_ids=[experiment.experiment_id])
+          assert len(runs) > 0, 'No runs found'
+          print(f'Model trained successfully! Found {len(runs)} run(s)')
+          "
+
+      - name: Get latest run ID
+        working-directory: MLProject
+        id: get_run
+        run: |
+          LATEST_RUN=$(python -c "
+          import mlflow
+          mlflow.set_tracking_uri('sqlite:///mlflow.db')
+          client = mlflow.tracking.MlflowClient()
+          experiment = client.get_experiment_by_name('Credit_Card_Fraud_Detection_CI')
+          runs = client.search_runs(experiment_ids=[experiment.experiment_id], order_by=['start_time DESC'], max_results=1)
+          print(runs[0].info.run_id)
+          ")
+          echo "run_id=$LATEST_RUN" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image from MLflow model
+        working-directory: MLProject
+        run: |
+          mlflow models build-docker -m "runs:/${{ steps.get_run.outputs.run_id }}/model" -n fraud-detection-model:latest
+
+      - name: Login to Docker Hub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push Docker image to Docker Hub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker tag fraud-detection-model:latest ${{ secrets.DOCKERHUB_USERNAME }}/fraud-detection-model:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/fraud-detection-model:latest
+          docker tag fraud-detection-model:latest ${{ secrets.DOCKERHUB_USERNAME }}/fraud-detection-model:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/fraud-detection-model:${{ github.sha }}
+          echo "Docker image pushed to Docker Hub"
+
+      - name: Commit MLflow artifacts back to GitHub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add MLProject/mlflow.db MLProject/mlruns/
+          git diff --staged --quiet || git commit -m "Update MLflow artifacts [skip ci]"
+          git push
+        continue-on-error: true
