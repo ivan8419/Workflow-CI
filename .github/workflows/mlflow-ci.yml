@@ -89,7 +89,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add MLProject/mlflow.db MLProject/mlruns/
+          git add MLProject/mlflow.db
           git diff --staged --quiet || git commit -m "Update MLflow artifacts [skip ci]"
           git push
         continue-on-error: true
