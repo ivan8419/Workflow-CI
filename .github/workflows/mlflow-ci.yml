@@ -25,6 +25,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas numpy scikit-learn mlflow==2.19.0 matplotlib seaborn
 
+      - name: Download dataset from GitHub
+        run: |
+          mkdir -p MLProject
+          curl -L -o MLProject/creditcard_preprocessed.csv https://raw.githubusercontent.com/ivan8419/Eksperimen_SML_Muhammad_Ivan/main/namadataset_preprocessing/creditcard_preprocessed.csv
+
       - name: Train model with MLflow Project
         working-directory: MLProject
         run: |
