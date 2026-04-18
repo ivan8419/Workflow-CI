@@ -5,10 +5,8 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import os
 
-# Enable autologging
 mlflow.sklearn.autolog()
 
-# Set local tracking URI explicitly just in case
 mlflow.set_tracking_uri("sqlite:///mlflow.db")
 mlflow.set_experiment("Credit_Card_Fraud_Detection")
 os.environ["LOGNAME"] = "ivan"
@@ -29,15 +27,12 @@ def load_data():
 def train_model():
     X_train, X_test, y_train, y_test = load_data()
 
-    with mlflow.start_run():
-        model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, class_weight='balanced')
-        model.fit(X_train, y_train)
+    model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, class_weight='balanced')
+    model.fit(X_train, y_train)
 
-        # Explicitly log model as 'model' folder
-        mlflow.sklearn.log_model(model, "model")
+    mlflow.sklearn.log_model(model, "model")
 
-        print("Training completed and logged locally via autolog.")
-
+    print("Training completed and logged locally via autolog.")
 
 if __name__ == "__main__":
     train_model()
