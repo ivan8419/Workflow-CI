@@ -23,12 +23,22 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas numpy scikit-learn mlflow==2.19.0 matplotlib seaborn
+          pip install pandas numpy scikit-learn mlflow==2.19.0 matplotlib seaborn kaggle
 
-      - name: Download dataset from GitHub
+      - name: Download dataset from Kaggle
+        working-directory: MLProject
+        env:
+          KAGGLE_USERNAME: "ivan8419"
+          KAGGLE_KEY: "KGAT_8f5739a22281a1842d0034e5db371324"
         run: |
-          mkdir -p MLProject
-          curl -L -o MLProject/creditcard_preprocessed.csv https://raw.githubusercontent.com/ivan8419/Eksperimen_SML_Muhammad_Ivan/main/namadataset_preprocessing/creditcard_preprocessed.csv
+          kaggle datasets download -d mlg-ulb/creditcardfraud
+          unzip creditcardfraud.zip
+          mv creditcard.csv raw_creditcard.csv
+
+      - name: Preprocess data
+        working-directory: MLProject
+        run: |
+          python preprocess.py --input raw_creditcard.csv --output creditcard_preprocessed.csv
 
       - name: Train model with MLflow Project
         working-directory: MLProject
