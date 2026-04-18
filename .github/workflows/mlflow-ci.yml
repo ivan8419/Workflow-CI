@@ -10,6 +10,8 @@ on:
 jobs:
   train-model:
     runs-on: ubuntu-latest
+    env:
+      MLFLOW_TRACKING_URI: "sqlite:///${{ github.workspace }}/MLProject/mlflow.db"
 
     steps:
       - name: Checkout code
@@ -23,24 +25,34 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas numpy scikit-learn mlflow==2.19.0 matplotlib seaborn
+          pip install pandas numpy scikit-learn mlflow==2.19.0 matplotlib seaborn kaggle
 
-      - name: Download dataset from GitHub
+      - name: Download dataset from Kaggle
+        working-directory: MLProject
+        env:
+          KAGGLE_USERNAME: "ivan665"
+          KAGGLE_KEY: "KGAT_8f5739a22281a1842d0034e5db371324"
         run: |
-          mkdir -p MLProject
-          curl -L -o MLProject/creditcard_preprocessed.csv https://raw.githubusercontent.com/ivan8419/Eksperimen_SML_Muhammad_Ivan/main/namadataset_preprocessing/creditcard_preprocessed.csv
+          kaggle datasets download -d mlg-ulb/creditcardfraud
+          unzip creditcardfraud.zip
+          mv creditcard.csv raw_creditcard.csv
+
+      - name: Preprocess data
+        working-directory: MLProject
+        run: |
+          python preprocess.py --input raw_creditcard.csv --output creditcard_preprocessed.csv
 
       - name: Train model with MLflow Project
         working-directory: MLProject
         run: |
-          mlflow run . --experiment-name Credit_Card_Fraud_Detection_CI
+          rm -f mlflow.db
+          mlflow run . --experiment-name Credit_Card_Fraud_Detection_CI --env-manager local
 
       - name: Verify model training
         working-directory: MLProject
         run: |
           python -c "
           import mlflow
-          mlflow.set_tracking_uri('sqlite:///mlflow.db')
           client = mlflow.tracking.MlflowClient()
           experiment = client.get_experiment_by_name('Credit_Card_Fraud_Detection_CI')
           assert experiment is not None, 'Experiment not found'
@@ -55,7 +67,6 @@ jobs:
         run: |
           LATEST_RUN=$(python -c "
           import mlflow
-          mlflow.set_tracking_uri('sqlite:///mlflow.db')
           client = mlflow.tracking.MlflowClient()
           experiment = client.get_experiment_by_name('Credit_Card_Fraud_Detection_CI')
           runs = client.search_runs(experiment_ids=[experiment.experiment_id], order_by=['start_time DESC'], max_results=1)
@@ -89,7 +100,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add MLProject/mlflow.db MLProject/mlruns/
+          git add MLProject/mlflow.db
           git diff --staged --quiet || git commit -m "Update MLflow artifacts [skip ci]"
           git push
         continue-on-error: true
