@@ -38,9 +38,6 @@ def main():
 
     print(f"Training: {len(X_train)}, Testing: {len(X_test)}")
 
-    mlflow.set_tracking_uri("sqlite:///mlflow.db")
-    mlflow.set_experiment("Credit_Card_Fraud_Detection_CI")
-
     mlflow.sklearn.autolog()
 
     with mlflow.start_run():

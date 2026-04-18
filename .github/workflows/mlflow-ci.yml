@@ -10,6 +10,8 @@ on:
 jobs:
   train-model:
     runs-on: ubuntu-latest
+    env:
+      MLFLOW_TRACKING_URI: "sqlite:///${{ github.workspace }}/MLProject/mlflow.db"
 
     steps:
       - name: Checkout code
@@ -51,7 +53,6 @@ jobs:
         run: |
           python -c "
           import mlflow
-          mlflow.set_tracking_uri('sqlite:///mlflow.db')
           client = mlflow.tracking.MlflowClient()
           experiment = client.get_experiment_by_name('Credit_Card_Fraud_Detection_CI')
           assert experiment is not None, 'Experiment not found'
@@ -66,7 +67,6 @@ jobs:
         run: |
           LATEST_RUN=$(python -c "
           import mlflow
-          mlflow.set_tracking_uri('sqlite:///mlflow.db')
           client = mlflow.tracking.MlflowClient()
           experiment = client.get_experiment_by_name('Credit_Card_Fraud_Detection_CI')
           runs = client.search_runs(experiment_ids=[experiment.experiment_id], order_by=['start_time DESC'], max_results=1)
