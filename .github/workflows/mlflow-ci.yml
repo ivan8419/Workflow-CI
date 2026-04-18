@@ -43,6 +43,7 @@ jobs:
       - name: Train model with MLflow Project
         working-directory: MLProject
         run: |
+          rm -f mlflow.db
           mlflow run . --experiment-name Credit_Card_Fraud_Detection_CI --env-manager local
 
       - name: Verify model training

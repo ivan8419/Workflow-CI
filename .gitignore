@@ -3,3 +3,4 @@
 
 # Exclude MLflow tracking folder
 mlruns/
+mlflow.db
