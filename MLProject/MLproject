@@ -5,7 +5,7 @@ conda_env: conda.yaml
 entry_points:
   main:
     parameters:
-      input_path: {type: string, default: "creditcard_preprocessed.csv"}
+      input_path: {type: string, default: "namadataset_preprocessing/creditcard_preprocessed.csv"}
       n_estimators: {type: int, default: 100}
       max_depth: {type: int, default: 10}
     command: "python modelling.py --input_path {input_path} --n_estimators {n_estimators} --max_depth {max_depth}"
