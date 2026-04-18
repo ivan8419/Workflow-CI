@@ -28,7 +28,7 @@ jobs:
       - name: Download dataset from Kaggle
         working-directory: MLProject
         env:
-          KAGGLE_USERNAME: "ivan8419"
+          KAGGLE_USERNAME: "ivan665"
           KAGGLE_KEY: "KGAT_8f5739a22281a1842d0034e5db371324"
         run: |
           kaggle datasets download -d mlg-ulb/creditcardfraud
